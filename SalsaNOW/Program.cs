@@ -11,7 +11,6 @@ namespace SalsaNOW
     internal class Program
     {
         private static string globalDirectory = "";
-        private static string currentPath = Directory.GetCurrentDirectory();
         private static readonly CancellationTokenSource cts = new CancellationTokenSource();
         private static string customAppsJsonPath = null;
 
@@ -102,8 +101,8 @@ namespace SalsaNOW
             await AppInstaller.AppsInstallSilentAsync(globalDirectory);
             await AppInstaller.DesktopInstallAsync(globalDirectory);
 
-            // Apply Nvidia optimizations always
-            NvidiaManager.EnableRTX();
+            try { NvidiaManager.EnableRTX(); }
+            catch (Exception ex) { SalsaLogger.Error($"NVIDIA optimization failed: {ex.Message}"); }
 
             
             

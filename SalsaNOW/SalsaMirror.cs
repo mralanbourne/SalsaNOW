@@ -28,10 +28,11 @@ namespace SalsaNOW
             "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36",
         };
 
+        private static readonly Random _rnd = new Random();
+
         private static string RandomUA()
         {
-            var rnd = new Random();
-            return USER_AGENTS[rnd.Next(USER_AGENTS.Length)];
+            return USER_AGENTS[_rnd.Next(USER_AGENTS.Length)];
         }
 
         public static async Task<List<string>> GetMirrorsAsync()

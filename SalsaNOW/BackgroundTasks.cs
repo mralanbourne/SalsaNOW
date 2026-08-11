@@ -30,7 +30,7 @@ namespace SalsaNOW
                     {
                         var runningProcs = Process.GetProcessesByName(processName);
 
-                        if (runningProcs.Length == 0) break;
+                        if (runningProcs.Length == 0) continue;
 
                         foreach (var proc in runningProcs)
                         {
@@ -176,12 +176,12 @@ namespace SalsaNOW
 
                 if (File.Exists(sourcePath))
                 {
-                    try 
-                    { 
-                        File.Copy(sourcePath, targetDesktopPath); 
+                    try
+                    {
+                        File.Copy(sourcePath, targetDesktopPath);
                         SalsaLogger.Warn($"Restored missing core component: {name}");
-                        new Thread(() => MessageBox.Show($"{Path.GetFileNameWithoutExtension(name)} is a core component and cannot be removed.", "SalsaNOW", MessageBoxButtons.OK, MessageBoxIcon.Information)).Start();
-                    } 
+                        _ = Task.Run(() => MessageBox.Show($"{Path.GetFileNameWithoutExtension(name)} is a core component and cannot be removed.", "SalsaNOW", MessageBoxButtons.OK, MessageBoxIcon.Information));
+                    }
                     catch { }
                 }
             }
@@ -374,9 +374,12 @@ namespace SalsaNOW
 
                 using (RegistryKey verify = Registry.CurrentUser.OpenSubKey("Environment"))
                 {
-                    SalsaLogger.Info("Verification:");
-                    SalsaLogger.Info("DOTNET_ROOT = " + verify.GetValue("DOTNET_ROOT", ""));
-                    SalsaLogger.Info("POWERSHELL_ROOT = " + verify.GetValue("POWERSHELL_ROOT", ""));
+                    if (verify != null)
+                    {
+                        SalsaLogger.Info("Verification:");
+                        SalsaLogger.Info("DOTNET_ROOT = " + verify.GetValue("DOTNET_ROOT", ""));
+                        SalsaLogger.Info("POWERSHELL_ROOT = " + verify.GetValue("POWERSHELL_ROOT", ""));
+                    }
                 }
 
                 SalsaLogger.Info("Environment setup complete.");

@@ -34,33 +34,33 @@ namespace SalsaNOW
                 }
                 SalsaLogger.Info($"[Steam] Using chunk: {chunkName}");
 
-                Process.Start(new ProcessStartInfo
+                using (var p = Process.Start(new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
                     Arguments = $@"/c xcopy ""C:\Program Files (x86)\Steam\steamui"" ""C:\Program Files (x86)\Steam\steamuiOG"" /E /I /H /Y",
                     UseShellExecute = false,
                     CreateNoWindow = true
-                })?.WaitForExit();
+                })) p?.WaitForExit();
 
                 File.Delete($@"C:\Program Files (x86)\Steam\steamuiOG\{chunkName}");
 
                 string backupDirName = SteamChunkDetector.GetBackupDirName();
 
-                Process.Start(new ProcessStartInfo
+                using (var p2 = Process.Start(new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
                     Arguments = $@"/c ren ""C:\Program Files (x86)\Steam\steamui"" ""{backupDirName}""",
                     UseShellExecute = false,
                     CreateNoWindow = true
-                })?.WaitForExit();
+                })) p2?.WaitForExit();
 
-                Process.Start(new ProcessStartInfo
+                using (var p3 = Process.Start(new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
                     Arguments = @"/c ren ""C:\Program Files (x86)\Steam\steamuiOG"" ""steamui""",
                     UseShellExecute = false,
                     CreateNoWindow = true
-                })?.WaitForExit();
+                })) p3?.WaitForExit();
 
                 await SalsaMirror.DownloadFileAsync($"/USG/{chunkName}", destinationDir + $"\\{chunkName}");
 

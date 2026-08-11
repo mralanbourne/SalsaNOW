@@ -110,11 +110,8 @@ namespace SalsaNOW
 
             string globalDirectory = "";
 
-            using (var wc = new WebClient())
-            {
-                var dir = JsonConvert.DeserializeObject<System.Collections.Generic.List<SavePath>>(await SalsaMirror.DownloadStringAsync("/jsons/directory.json"))[0];
-                globalDirectory = dir.directoryCreate;
-            }
+            var dir = JsonConvert.DeserializeObject<System.Collections.Generic.List<SavePath>>(await SalsaMirror.DownloadStringAsync("/jsons/directory.json"))[0];
+            globalDirectory = dir.directoryCreate;
 
             if (!Directory.Exists(globalDirectory))
             {
@@ -152,51 +149,48 @@ namespace SalsaNOW
             {
                 string globalDirectory = "";
 
-                using (var wc = new WebClient())
+                var dir = JsonConvert.DeserializeObject<List<SavePath>>(
+                    await SalsaMirror.DownloadStringAsync("/jsons/directory.json"))[0];
+
+                globalDirectory = dir.directoryCreate;
+
+                if(!Directory.Exists(globalDirectory))
                 {
-                    var dir = JsonConvert.DeserializeObject<List<SavePath>>(
-                        await SalsaMirror.DownloadStringAsync("/jsons/directory.json"))[0];
+                    SalsaLogger.Error($"Global directory '{globalDirectory}' does not exist, make sure you first install SalsaNOW.");
 
-                    globalDirectory = dir.directoryCreate;
+                    Thread.Sleep(3000);
 
-                    if(!Directory.Exists(globalDirectory))
+                    return;
+                }
+
+                string json = jsonUrlContent;
+                var apps = JsonConvert.DeserializeObject<List<Apps>>(json);
+
+                foreach (var app in apps)
+                {
+                    string desktopPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                        $"{app.name}.lnk");
+
+                    string targetPath;
+
+                    if (app.fileExtension == "zip")
                     {
-                        SalsaLogger.Error($"Global directory '{globalDirectory}' does not exist, make sure you first install SalsaNOW.");
-
-                        Thread.Sleep(3000);
-
-                        return;
+                        targetPath = Path.Combine(globalDirectory, app.name, app.exeName);
+                    }
+                    else
+                    {
+                        targetPath = Path.Combine(globalDirectory, app.exeName);
                     }
 
-                    string json = jsonUrlContent;
-                    var apps = JsonConvert.DeserializeObject<List<Apps>>(json);
+                    if (!File.Exists(targetPath))
+                        continue;
 
-                    foreach (var app in apps)
-                    {
-                        string desktopPath = Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                            $"{app.name}.lnk");
-
-                        string targetPath;
-
-                        if (app.fileExtension == "zip")
-                        {
-                            targetPath = Path.Combine(globalDirectory, app.name, app.exeName);
-                        }
-                        else
-                        {
-                            targetPath = Path.Combine(globalDirectory, app.exeName);
-                        }
-
-                        if (!File.Exists(targetPath))
-                            continue;
-
-                        AppInstaller.CreateShortcut(
-                            app.name,
-                            desktopPath,
-                            targetPath,
-                            Path.GetDirectoryName(targetPath));
-                    }
+                    AppInstaller.CreateShortcut(
+                        app.name,
+                        desktopPath,
+                        targetPath,
+                        Path.GetDirectoryName(targetPath));
                 }
 
                 Console.Clear();

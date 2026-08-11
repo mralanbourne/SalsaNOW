@@ -393,11 +393,12 @@ namespace SalsaNOW
                 catch { Thread.Sleep(200); }
             }
 
-            try 
+            try
             {
-                // Instantiate WScript.Shell without Interop dependencies to prevent COM thread crashes
                 Type tWsh = Type.GetTypeFromProgID("WScript.Shell");
+                if (tWsh == null) { SalsaLogger.Error($"WScript.Shell not available for {name}"); return; }
                 dynamic shell = Activator.CreateInstance(tWsh);
+                if (shell == null) { SalsaLogger.Error($"Failed to create WScript.Shell instance for {name}"); return; }
                 var lnk = shell.CreateShortcut(path);
                 lnk.TargetPath = target;
                 lnk.WorkingDirectory = workDir;

@@ -34,7 +34,11 @@ namespace SalsaNOW
             foreach (var name in KNOWN_SHELL_NAMES)
             {
                 var procs = Process.GetProcessesByName(name);
-                if (procs.Length > 0) return procs[0];
+                if (procs.Length > 0)
+                {
+                    for (int i = 1; i < procs.Length; i++) procs[i].Dispose();
+                    return procs[0];
+                }
             }
 
             int foundPid = 0;
@@ -50,9 +54,10 @@ namespace SalsaNOW
                 GetWindowThreadProcessId(hWnd, out uint pid);
                 if (pid == 0) return true;
 
+                Process proc = null;
                 try
                 {
-                    var proc = Process.GetProcessById((int)pid);
+                    proc = Process.GetProcessById((int)pid);
                     string procName = proc.ProcessName.ToLowerInvariant();
 
                     if (procName == "explorer" || procName == "salsanow" ||
@@ -79,10 +84,12 @@ namespace SalsaNOW
                         titleLower.Contains("gfn") || titleLower.Contains("geforce"))
                     {
                         foundPid = (int)pid;
+                        proc.Dispose();
                         return false;
                     }
                 }
                 catch { }
+                finally { proc?.Dispose(); }
 
                 return true;
             }, IntPtr.Zero);
