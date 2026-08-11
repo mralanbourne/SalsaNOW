@@ -11,8 +11,6 @@ namespace SalsaNOW
 {
     internal static class SteamManager
     {
-        // Steam Server (NVIDIA Made Proxy Interceptor for Steam) "127.10.0.231:9753"
-        // Steam Server communicates with Steam by proxy and intercepts function calls from Steam by
         // making them not happen or replaces them with special made ones to do something else.
         // Shutting the server down by POST request and loading custom config will lead to all opted-in games on
         // GeForce NOW to show up on Steam.
@@ -21,27 +19,37 @@ namespace SalsaNOW
         {
             try
             {
-                string usgMask = Path.Combine(globalDirectory, "conhost.exe");
+                string usgMask = Path.Combine(globalDirectory, SteamChunkDetector.GetRandomMasqueradeName());
                 string destinationDir = @"C:\Program Files (x86)\Steam\steamui";
 
                 string cache = @"C:\Program Files (x86)\Steam\appcache";
 
                 await DisableSteamInput();
 
+                string chunkName = SteamChunkDetector.DetectChunk();
+                if (string.IsNullOrEmpty(chunkName))
+                {
+                    SalsaLogger.Error("[Steam] Could not detect chunk filename, using fallback");
+                    chunkName = "chunk~2dcc5aaf7.js";
+                }
+                SalsaLogger.Info($"[Steam] Using chunk: {chunkName}");
+
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = @"/c xcopy ""C:\Program Files (x86)\Steam\steamui"" ""C:\Program Files (x86)\Steam\steamuiOG"" /E /I /H /Y",
+                    Arguments = $@"/c xcopy ""C:\Program Files (x86)\Steam\steamui"" ""C:\Program Files (x86)\Steam\steamuiOG"" /E /I /H /Y",
                     UseShellExecute = false,
                     CreateNoWindow = true
                 })?.WaitForExit();
 
-                File.Delete(@"C:\Program Files (x86)\Steam\steamuiOG\chunk~2dcc5aaf7.js");
+                File.Delete($@"C:\Program Files (x86)\Steam\steamuiOG\{chunkName}");
+
+                string backupDirName = SteamChunkDetector.GetBackupDirName();
 
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = @"/c ren ""C:\Program Files (x86)\Steam\steamui"" ""steamuiNV""",
+                    Arguments = $@"/c ren ""C:\Program Files (x86)\Steam\steamui"" ""{backupDirName}""",
                     UseShellExecute = false,
                     CreateNoWindow = true
                 })?.WaitForExit();
@@ -54,11 +62,10 @@ namespace SalsaNOW
                     CreateNoWindow = true
                 })?.WaitForExit();
 
-                using (var wc = new WebClient()) await wc.DownloadFileTaskAsync(new Uri("https://salsanowfiles.work/USG/chunk~2dcc5aaf7.js"), destinationDir + "\\chunk~2dcc5aaf7.js");
+                await SalsaMirror.DownloadFileAsync($"/USG/{chunkName}", destinationDir + $"\\{chunkName}");
 
-                // Steam USG Bypass Part (Temporary until patch discovered)
 
-                using (var wc = new WebClient()) await wc.DownloadFileTaskAsync(new Uri("https://salsanowfiles.work/USG/bleh.exe"), usgMask);
+                await SalsaMirror.DownloadFileAsync("/USG/bleh.exe", usgMask);
 
                 Process usg = null;
 
@@ -100,7 +107,8 @@ namespace SalsaNOW
             {
                 SalsaLogger.Info("Setting up Cloud Save directory junctions...");
                 string json;
-                using (var wc = new WebClient()) json = await wc.DownloadStringTaskAsync("https://salsanowfiles.work/jsons/GameSavesPaths.json");
+
+                json = await SalsaMirror.DownloadStringAsync("/jsons/GameSavesPaths.json");
                 var savePaths = JsonConvert.DeserializeObject<GamesSavePaths>(json);
                 string savesRoot = Path.Combine(globalDirectory, "Game Saves");
                 Directory.CreateDirectory(savesRoot);
@@ -122,7 +130,6 @@ namespace SalsaNOW
 
         private static async Task HandlePublicDocs(string dir, string crafted)
         {
-            // Kill NvContainerWindowClass to release the lock on Public Documents
             foreach (var p in Process.GetProcessesByName("NVDisplay.Container"))
             {
                 NativeMethods.EnumWindows((hWnd, lp) => {
