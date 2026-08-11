@@ -294,7 +294,10 @@ namespace SalsaNOW
                             SalsaLogger.Error("STEAM LAUNCH OPTIONS DETECTED. Session terminated.");
 
                             foreach (var p in Process.GetProcessesByName("steam"))
-                                p.Kill();
+                            {
+                                try { p.Kill(); } catch { }
+                                p.Dispose();
+                            }
                         }
 
                         return;
@@ -408,9 +411,18 @@ namespace SalsaNOW
 
         public static async Task OpenShellStartup(string globalDirectory)
         {
-            await Task.Delay(15000); // Wait for the system to stabilize before launching Open-Shell
+            await Task.Delay(15000);
 
-            Process.Start($"{globalDirectory}\\SilentApps\\Open-Shell\\StartMenu.exe");
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = $@"{globalDirectory}\SilentApps\Open-Shell\StartMenu.exe",
+                    UseShellExecute = true
+                };
+                Process.Start(psi);
+            }
+            catch (Exception ex) { SalsaLogger.Error($"Open-Shell startup failed: {ex.Message}"); }
         }
     }
 }

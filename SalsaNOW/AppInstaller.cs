@@ -259,11 +259,7 @@ namespace SalsaNOW
             try
             {
                 List<DesktopInfo> desktopInfo;
-                using (var wc = new WebClient())
-                {
-                    string json = desktopJson;
-                    desktopInfo = JsonConvert.DeserializeObject<List<DesktopInfo>>(json);
-                }
+                desktopInfo = JsonConvert.DeserializeObject<List<DesktopInfo>>(desktopJson);
 
                 // Close existing shells before attempting updates
 
@@ -275,7 +271,11 @@ namespace SalsaNOW
                     if (shell != null) shellProcs = new[] { shell };
                 }
                 var processes = shellProcs;
-                foreach (var p in processes) p.Kill();
+                foreach (var p in processes)
+                {
+                    try { if (!p.HasExited) p.Kill(); } catch { }
+                    p.Dispose();
+                }
 
                 foreach (var desktop in desktopInfo)
                 {

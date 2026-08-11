@@ -119,19 +119,15 @@ namespace SalsaNOW
         {
             try
             {
-                using (var wc = new WebClient())
-                {
-                    var dir = JsonConvert.DeserializeObject<System.Collections.Generic.List<SavePath>>(await SalsaMirror.DownloadStringAsync("/jsons/directory.json"))[0];
-                    globalDirectory = dir.directoryCreate;
-                    Directory.CreateDirectory(globalDirectory);
-                    
-                    // Initialize Logger here so it knows the global directory path
-                    SalsaLogger.Initialize(globalDirectory);
-                    SalsaLogger.Info($"Main directory created {globalDirectory}");
-                    
-                    string cfg = Path.Combine(globalDirectory, "SalsaNOWConfig.ini");
-                    if (!System.IO.File.Exists(cfg)) await SalsaMirror.DownloadFileAsync("/jsons/SalsaNOWConfig.ini", cfg);
-                }
+                var dir = JsonConvert.DeserializeObject<System.Collections.Generic.List<SavePath>>(await SalsaMirror.DownloadStringAsync("/jsons/directory.json"))[0];
+                globalDirectory = dir.directoryCreate;
+                Directory.CreateDirectory(globalDirectory);
+
+                SalsaLogger.Initialize(globalDirectory);
+                SalsaLogger.Info($"Main directory created {globalDirectory}");
+
+                string cfg = Path.Combine(globalDirectory, "SalsaNOWConfig.ini");
+                if (!System.IO.File.Exists(cfg)) await SalsaMirror.DownloadFileAsync("/jsons/SalsaNOWConfig.ini", cfg);
             }
             // Upload Crashlogs to paste.rs and show the user a link to forward to the Devs
             catch (Exception ex) 

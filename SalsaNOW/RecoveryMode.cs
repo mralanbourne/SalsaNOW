@@ -125,6 +125,15 @@ namespace SalsaNOW
                 return;
             }
 
+            // Safety: never delete if path is empty, root, or too short
+            if (string.IsNullOrWhiteSpace(globalDirectory) || globalDirectory.Length < 5 ||
+                globalDirectory == Path.GetPathRoot(globalDirectory))
+            {
+                SalsaLogger.Error("Refusing to delete invalid globalDirectory: " + globalDirectory);
+                Console.WriteLine("Reset failed: invalid directory path.");
+                Thread.Sleep(3000);
+                return;
+            }
             Directory.Delete(globalDirectory, true);
 
             Console.Clear();

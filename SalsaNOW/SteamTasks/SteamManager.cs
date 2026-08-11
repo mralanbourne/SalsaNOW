@@ -85,13 +85,17 @@ namespace SalsaNOW
 
                 await Task.Delay(500); // Wait for the process to start
 
-                if (Directory.Exists(cache)) Directory.Delete(cache, true);
+                if (Directory.Exists(cache))
+                {
+                    try { Directory.Delete(cache, true); }
+                    catch (Exception ex) { SalsaLogger.Info($"Cache cleanup skipped: {ex.Message}"); }
+                }
 
                 // Start Startup Batch file if user has it available
                 string batch = Path.Combine(globalDirectory, "StartupBatch.bat");
                 if (File.Exists(batch)) Process.Start(new ProcessStartInfo { FileName = batch, UseShellExecute = true });
 
-                if (usg != null) { while (!usg.HasExited) await Task.Delay(1000); }
+                if (usg != null) { while (!usg.HasExited) await Task.Delay(1000); usg.Dispose(); }
                 await Task.Delay(200);
                 if (File.Exists(usgMask)) File.Delete(usgMask);
                 
@@ -132,16 +136,19 @@ namespace SalsaNOW
         {
             foreach (var p in Process.GetProcessesByName("NVDisplay.Container"))
             {
-                NativeMethods.EnumWindows((hWnd, lp) => {
-                    NativeMethods.GetWindowThreadProcessId(hWnd, out uint pid);
-                    if (pid == p.Id) {
-                        var sb = new StringBuilder(256);
-                        NativeMethods.GetClassName(hWnd, sb, sb.Capacity);
-                        if (sb.ToString().StartsWith("NvContainerWindowClass", StringComparison.OrdinalIgnoreCase))
-                            NativeMethods.PostMessage(hWnd, (uint)NativeMethods.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
-                    }
-                    return true;
-                }, IntPtr.Zero);
+                using (p)
+                {
+                    NativeMethods.EnumWindows((hWnd, lp) => {
+                        NativeMethods.GetWindowThreadProcessId(hWnd, out uint pid);
+                        if (pid == p.Id) {
+                            var sb = new StringBuilder(256);
+                            NativeMethods.GetClassName(hWnd, sb, sb.Capacity);
+                            if (sb.ToString().StartsWith("NvContainerWindowClass", StringComparison.OrdinalIgnoreCase))
+                                NativeMethods.PostMessage(hWnd, (uint)NativeMethods.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+                        }
+                        return true;
+                    }, IntPtr.Zero);
+                }
             }
 
             await Task.Delay(500); // A little bit of delay to ensure that the window has been fully closed
