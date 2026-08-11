@@ -195,7 +195,13 @@ namespace SalsaNOW
                 while (!token.IsCancellationRequested)
                 {
                     await Task.Delay(500, token);
+
                     IntPtr windowPtr = NativeMethods.FindWindowByCaption(IntPtr.Zero, "CustomExplorer");
+                    if (windowPtr == IntPtr.Zero)
+                    {
+                        // Fallback: find by behavior
+                        windowPtr = GfnShellDetector.FindShellWindow();
+                    }
                     if (windowPtr != IntPtr.Zero)
                     {
                         NativeMethods.SendMessage(windowPtr, NativeMethods.WM_CLOSE, IntPtr.Zero, IntPtr.Zero);

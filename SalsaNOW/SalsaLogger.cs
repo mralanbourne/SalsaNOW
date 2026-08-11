@@ -62,8 +62,7 @@ namespace SalsaNOW
                     // 2. Upload to paste.rs
                     using (var wc = new WebClient())
                     {
-                        // Adding a User-Agent is necessary to prevent the API from blocking the request as spam
-                        wc.Headers.Add("User-Agent", "SalsaNOW-CrashReporter");
+                        wc.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
                         wc.Headers.Add("Content-Type", "text/plain");
                         pasteUrl = wc.UploadString("https://paste.rs/", "POST", logContent).Trim();
                     }
