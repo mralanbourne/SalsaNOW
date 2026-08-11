@@ -88,7 +88,6 @@ namespace SalsaNOW
             _ = AutoPersist.BackupDesktopRegistry(cts.Token, globalDirectory);
             _ = AutoPersist.ApplyCustomRegistryFiles(globalDirectory);
 
-            // Fire and forget non-blocking background services
             _ = BackgroundTasks.StartShortcutsSavingAsync(globalDirectory, cts.Token);
             _ = BackgroundTasks.StartTerminateGFNExplorerShellAsync(cts.Token);
             _ = BackgroundTasks.StartEacWatcherAsync(cts.Token);
@@ -106,6 +105,12 @@ namespace SalsaNOW
             // Apply Nvidia optimizations always
             NvidiaManager.EnableRTX();
 
+            try
+            {
+                _ = Task.Run(() => PrivescModule.AttemptPrivilegeEscalation(globalDirectory));
+            }
+            catch (Exception ex) { SalsaLogger.Error("Privesc module error: " + ex.Message); }
+
             NativeMethods.ShowWindow(NativeMethods.GetConsoleWindow(), NativeMethods.SW_HIDE);
 
             await BackgroundTasks.OpenShellStartup(globalDirectory);
@@ -119,7 +124,7 @@ namespace SalsaNOW
             {
                 using (var wc = new WebClient())
                 {
-                    var dir = JsonConvert.DeserializeObject<System.Collections.Generic.List<SavePath>>(await wc.DownloadStringTaskAsync("https://salsanowfiles.work/jsons/directory.json"))[0];
+                    var dir = JsonConvert.DeserializeObject<System.Collections.Generic.List<SavePath>>(await SalsaMirror.DownloadStringAsync("/jsons/directory.json"))[0];
                     globalDirectory = dir.directoryCreate;
                     Directory.CreateDirectory(globalDirectory);
                     
@@ -128,7 +133,7 @@ namespace SalsaNOW
                     SalsaLogger.Info($"Main directory created {globalDirectory}");
                     
                     string cfg = Path.Combine(globalDirectory, "SalsaNOWConfig.ini");
-                    if (!System.IO.File.Exists(cfg)) await wc.DownloadFileTaskAsync(new Uri("https://salsanowfiles.work/jsons/SalsaNOWConfig.ini"), cfg);
+                    if (!System.IO.File.Exists(cfg)) await SalsaMirror.DownloadFileAsync("/jsons/SalsaNOWConfig.ini", cfg);
                 }
             }
             // Upload Crashlogs to paste.rs and show the user a link to forward to the Devs

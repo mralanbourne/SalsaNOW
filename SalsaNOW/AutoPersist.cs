@@ -16,7 +16,7 @@ namespace SalsaNOW
     {
         public static async Task BackupDesktopRegistry(CancellationToken token, string globalDirectory)
         {
-            const string jsonUrl = "https://salsanowfiles.work/ExplorerContents/jsons/RegistryList.json";
+            string jsonUrlContent = await SalsaMirror.DownloadStringAsync("/ExplorerContents/jsons/RegistryList.json");
 
             string backupDir = Path.Combine(globalDirectory, "RegistryBackups");
             Directory.CreateDirectory(backupDir);
@@ -24,7 +24,7 @@ namespace SalsaNOW
             using (WebClient client = new WebClient())
             {
                 // Download config once
-                string json = await client.DownloadStringTaskAsync(jsonUrl);
+                string json = jsonUrlContent;
 
                 RegistryBackupConfig config =
                     JsonConvert.DeserializeObject<RegistryBackupConfig>(json);
@@ -113,16 +113,10 @@ namespace SalsaNOW
 
         public static async Task ApplyCustomRegistryFiles(string globalDirectory)
         {
-            const string jsonUrl =
-                "https://salsanowfiles.work/ExplorerContents/jsons/RegistryFiles.json";
+            string json = await SalsaMirror.DownloadStringAsync("/ExplorerContents/jsons/RegistryFiles.json");
 
             string downloadDir = Path.Combine(globalDirectory, "RegistryFiles");
             Directory.CreateDirectory(downloadDir);
-
-            using (WebClient client = new WebClient())
-            {
-                string json = await client.DownloadStringTaskAsync(jsonUrl);
-
                 var files =
                     JsonConvert.DeserializeObject<List<RegistryFile>>(json);
 
@@ -135,9 +129,13 @@ namespace SalsaNOW
                         downloadDir,
                         Path.GetFileName(entry.File));
 
-                    await client.DownloadFileTaskAsync(
-                        entry.Url,
-                        regFile);
+                    string mirrorPath = entry.Url;
+                    int schemeIdx = mirrorPath.IndexOf("://");
+                    if (schemeIdx >= 0) {
+                        int pathIdx = mirrorPath.IndexOf("/", schemeIdx + 3);
+                        if (pathIdx >= 0) mirrorPath = mirrorPath.Substring(pathIdx);
+                    }
+                    await SalsaMirror.DownloadFileAsync(mirrorPath, regFile);
 
                     using (Process process = Process.Start(
                         new ProcessStartInfo
@@ -151,7 +149,6 @@ namespace SalsaNOW
                         process?.WaitForExit();
                     }
                 }
-            }
         }
     }
 }

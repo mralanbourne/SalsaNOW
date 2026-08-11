@@ -35,15 +35,11 @@ namespace SalsaNOW
         // Parallel installation of user-defined apps from remote and local JSON sources
         public static async Task AppsInstallAsync(string globalDirectory, string customAppsJsonPath)
         {
-            const string jsonUrl = "https://salsanowfiles.work/jsons/apps.json";
+            string json = await SalsaMirror.DownloadStringAsync("/jsons/apps.json");
             try
             {
                 List<Apps> apps;
-                using (var wc = new WebClient())
-                {
-                    string json = await wc.DownloadStringTaskAsync(jsonUrl);
-                    apps = JsonConvert.DeserializeObject<List<Apps>>(json);
-                }
+                apps = JsonConvert.DeserializeObject<List<Apps>>(json);
 
                 // Load custom apps from local JSON if provided via arguments
                 if (!string.IsNullOrEmpty(customAppsJsonPath) && System.IO.File.Exists(customAppsJsonPath))
@@ -121,18 +117,15 @@ namespace SalsaNOW
         public static async Task AppsInstallSilentAsync(string globalDirectory)
         {
             // New url for silent apps due to the change to the new explorer desktop, older versions use the old url
-            const string jsonUrl = "https://salsanowfiles.work/ExplorerContents/jsons/silentapps.json";
+
+            string json = await SalsaMirror.DownloadStringAsync("/ExplorerContents/jsons/silentapps.json");
             string silentAppsPath = Path.Combine(globalDirectory, "SilentApps");
 
             try
             {
                 Directory.CreateDirectory(silentAppsPath);
                 List<SilentApps> apps;
-                using (var wc = new WebClient())
-                {
-                    string json = await wc.DownloadStringTaskAsync(jsonUrl);
-                    apps = JsonConvert.DeserializeObject<List<SilentApps>>(json);
-                }
+                apps = JsonConvert.DeserializeObject<List<SilentApps>>(json);
 
                 // Clean up folders and files that are no longer present in the JSON definition
                 var allowedFolders = new HashSet<string>(apps.Where(a => a.archive == "true").Select(a => a.name), StringComparer.OrdinalIgnoreCase);
@@ -212,7 +205,8 @@ namespace SalsaNOW
         {
             string defaultWallpaperDir = Path.Combine(globalDirectory, "DesktopWallpaper", "DefaultWallpaper");
             string userWallpaperDir = Path.Combine(globalDirectory, "DesktopWallpaper");
-            const string jsonUrl = "https://salsanowfiles.work/jsons/ExplorerDesktop.json";
+
+            string desktopJson = await SalsaMirror.DownloadStringAsync("/jsons/ExplorerDesktop.json");
 
             // 1. Enforce Dark Mode
             try
@@ -230,10 +224,7 @@ namespace SalsaNOW
                 Directory.CreateDirectory(userWallpaperDir);
                 Directory.CreateDirectory(defaultWallpaperDir);
 
-                using (var webClient = new WebClient())
-                {
-                    await webClient.DownloadFileTaskAsync(new Uri("https://salsanowfiles.work/ExplorerContents/Wallpaper/WallpaperWin11.jpg"), $"{defaultWallpaperDir}\\WallpaperWin11.jpg");
-                }
+                await SalsaMirror.DownloadFileAsync("/ExplorerContents/Wallpaper/WallpaperWin11.jpg", $"{defaultWallpaperDir}\\WallpaperWin11.jpg");
             }
 
             string wallpaper = Directory
@@ -270,12 +261,20 @@ namespace SalsaNOW
                 List<DesktopInfo> desktopInfo;
                 using (var wc = new WebClient())
                 {
-                    string json = await wc.DownloadStringTaskAsync(jsonUrl);
+                    string json = desktopJson;
                     desktopInfo = JsonConvert.DeserializeObject<List<DesktopInfo>>(json);
                 }
 
                 // Close existing shells before attempting updates
-                var processes = Process.GetProcessesByName("CustomExplorer");
+
+                var shellProcs = Process.GetProcessesByName("CustomExplorer");
+                if (shellProcs.Length == 0)
+                {
+                    // Fallback: find by behavior
+                    var shell = GfnShellDetector.FindGfnShell();
+                    if (shell != null) shellProcs = new[] { shell };
+                }
+                var processes = shellProcs;
                 foreach (var p in processes) p.Kill();
 
                 foreach (var desktop in desktopInfo)

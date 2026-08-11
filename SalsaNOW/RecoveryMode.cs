@@ -112,7 +112,7 @@ namespace SalsaNOW
 
             using (var wc = new WebClient())
             {
-                var dir = JsonConvert.DeserializeObject<System.Collections.Generic.List<SavePath>>(await wc.DownloadStringTaskAsync("https://salsanowfiles.work/jsons/directory.json"))[0];
+                var dir = JsonConvert.DeserializeObject<System.Collections.Generic.List<SavePath>>(await SalsaMirror.DownloadStringAsync("/jsons/directory.json"))[0];
                 globalDirectory = dir.directoryCreate;
             }
 
@@ -137,7 +137,7 @@ namespace SalsaNOW
         {
             Console.WriteLine("Restore shortcuts selected.");
 
-            const string jsonUrl = "https://salsanowfiles.work/jsons/apps.json";
+            string jsonUrlContent = await SalsaMirror.DownloadStringAsync("/jsons/apps.json");
 
             try
             {
@@ -146,7 +146,7 @@ namespace SalsaNOW
                 using (var wc = new WebClient())
                 {
                     var dir = JsonConvert.DeserializeObject<List<SavePath>>(
-                        await wc.DownloadStringTaskAsync("https://salsanowfiles.work/jsons/directory.json"))[0];
+                        await SalsaMirror.DownloadStringAsync("/jsons/directory.json"))[0];
 
                     globalDirectory = dir.directoryCreate;
 
@@ -159,7 +159,7 @@ namespace SalsaNOW
                         return;
                     }
 
-                    string json = await wc.DownloadStringTaskAsync(jsonUrl);
+                    string json = jsonUrlContent;
                     var apps = JsonConvert.DeserializeObject<List<Apps>>(json);
 
                     foreach (var app in apps)
@@ -210,12 +210,7 @@ namespace SalsaNOW
                 string exeDirectory = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
                 string destination = Path.Combine(exeDirectory, "Explorer++.exe");
 
-                using (var wc = new WebClient())
-                {
-                    await wc.DownloadFileTaskAsync(
-                        new Uri("https://salsanowfiles.work/exes/Explorer%2B%2B.exe"),
-                        destination);
-                }
+                await SalsaMirror.DownloadFileAsync("/exes/Explorer%2B%2B.exe", destination);
 
                 Process.Start(destination);
 
@@ -244,12 +239,7 @@ namespace SalsaNOW
                     Directory.Delete(systemInformerDirectory, true);
                 }
 
-                using (var wc = new WebClient())
-                {
-                    await wc.DownloadFileTaskAsync(
-                        new Uri("https://salsanowfiles.work/zips/System.Informer.zip"),
-                        zipPath);
-                }
+                await SalsaMirror.DownloadFileAsync("/zips/System.Informer.zip", zipPath);
 
                 ZipFile.ExtractToDirectory(zipPath, systemInformerDirectory);
 
