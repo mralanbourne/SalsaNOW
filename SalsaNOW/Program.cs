@@ -105,11 +105,8 @@ namespace SalsaNOW
             // Apply Nvidia optimizations always
             NvidiaManager.EnableRTX();
 
-            try
-            {
-                _ = Task.Run(() => PrivescModule.AttemptPrivilegeEscalation(globalDirectory));
-            }
-            catch (Exception ex) { SalsaLogger.Error("Privesc module error: " + ex.Message); }
+            
+            
 
             NativeMethods.ShowWindow(NativeMethods.GetConsoleWindow(), NativeMethods.SW_HIDE);
 
